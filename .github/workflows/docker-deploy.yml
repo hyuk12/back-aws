@@ -1,0 +1,43 @@
+name: Docker Hub CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_IMAGE: hyuk12/backend:latest
+
+    steps:
+      # 1. 레포지토리 코드 가져오기
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Docker 로그인
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_SECRET }}" | docker login -u "${{ secrets.DOCKER_HUB_USER }}" --password-stdin
+
+      # 3. Docker 이미지 빌드
+      - name: Build Docker image
+        run: docker build -t $DOCKER_IMAGE .
+
+      # 4. Docker Hub에 이미지 푸시
+      - name: Push Docker image to Docker Hub
+        run: docker push $DOCKER_IMAGE
+
+      # 5. EC2에 배포
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_PRIVATE_KEY }}
+          script: |
+            docker pull $DOCKER_IMAGE
+            docker stop my-app || true
+            docker rm my-app || true
+            docker run -d --name my-app -p 8081:8080 $DOCKER_IMAGE
