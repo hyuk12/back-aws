@@ -15,12 +15,12 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - my_network
 
   # Spring Boot 애플리케이션 서비스
   springboot:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: hyuk12/backend:1.0.0
     container_name: springboot_app
     restart: always
     environment:
@@ -31,6 +31,12 @@ services:
       - "8080:8080"
     depends_on:
       - mysql
+    networks:
+      - my_network
 
 volumes:
   mysql_data:
+
+networks:
+  my_network:
+    driver: bridge
